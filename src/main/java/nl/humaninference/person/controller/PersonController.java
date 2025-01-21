@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import nl.humaninference.person.entity.Department;
 import nl.humaninference.person.entity.Person;
 import nl.humaninference.person.entity.PersonStatus;
+import nl.humaninference.person.exception.ValidationException;
 import nl.humaninference.person.service.DepartmentService;
 import nl.humaninference.person.service.PersonService;
 
@@ -40,7 +41,8 @@ public class PersonController {
 		this.departmentService = departmentService;
 	}
 
-	// This endpoint allows us to search for persons. In this situation we use request parameters. 
+	// This endpoint allows us to search for persons. In this situation we use request parameters.
+    // We could also use a dto if we want to. 
     @GetMapping("/search")
     public Page<Person> search(
             @RequestParam(required = false) String name,
@@ -64,8 +66,15 @@ public class PersonController {
 
     // This endpoint allows people to create a new person.
     @PostMapping
-    public ResponseEntity<Person> createPerson(@RequestBody Person person) {
-        Person createdPerson = personService.createPerson(person);
+    public ResponseEntity<Person> create(@RequestBody Person person) {
+    	// We have a choice to do the validation here in the controller or in the service layer.
+    	// For this assignment I have chosen to do both just to show that its possible to do both. 
+    	// Putting the validation in the controller would look like this:
+    	if (person.getName() == null || person.getName().isEmpty()) {
+    		throw new ValidationException("Name may not be empty");
+    	}
+
+        Person createdPerson = personService.create(person);
 
         return ResponseEntity.ok(createdPerson);
     }
@@ -91,25 +100,18 @@ public class PersonController {
 
     // Allow updating an existing person
     @PutMapping("/{id}")
-    public ResponseEntity<Person> updatePerson(@PathVariable Long id, @RequestBody Person updatedPerson) {
-        try {
-            Person person = personService.updatePerson(id, updatedPerson);
-            return ResponseEntity.ok(person);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Person> update(@PathVariable Long id, @RequestBody Person updatedPerson) {
+        Person person = personService.update(id, updatedPerson);
+
+        return ResponseEntity.ok(person);
     }
 
     // Allow the deletion of a specific person
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePerson(@PathVariable Long id) {
-        try {
-            personService.deletePerson(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        personService.delete(id);
 
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.noContent().build();
     }
     
 }

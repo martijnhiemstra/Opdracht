@@ -27,7 +27,7 @@ public class Person {
 	
 	@Column(nullable = false, length = 20)
 	@Enumerated(EnumType.STRING)
-	private PersonStatus status;
+	private PersonStatus status = PersonStatus.ACTIVE;
 	
 	@Column(nullable = false)
 	private LocalDateTime startDate;
@@ -82,6 +82,18 @@ public class Person {
 	
 	public void setDepartment(Department department) {
 		this.department = department;
+	}
+	
+	@Override
+	public String toString() {
+	    return "Person{" +
+	            "id=" + id +
+	            ", name='" + name + '\'' +
+	            ", salary=" + salary +
+	            ", status=" + status +
+	            ", startDate=" + startDate +
+	            ", department=" + (department != null ? department.getName() : "null") +
+	            '}';
 	}
 
 }
