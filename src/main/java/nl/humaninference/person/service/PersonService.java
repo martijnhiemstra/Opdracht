@@ -43,7 +43,7 @@ public class PersonService {
     // Create a new person in the database.
     public Person create(Person person) {
     	log.debug("Creating person [{}]", person);
-    	
+
     	// Officially the validation should take place in the service layer also known as the business logic layer.
     	// Some people like do to it in the controller (2 birds 1 stone solution). If we were to 
     	// do the validation in the service layer instead of the controller layer then we would use the following code:

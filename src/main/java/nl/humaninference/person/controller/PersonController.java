@@ -3,8 +3,6 @@ package nl.humaninference.person.controller;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,8 +28,6 @@ import nl.humaninference.person.service.PersonService;
 @RequestMapping("/api/person")
 public class PersonController {
 	
-	private static final Logger log = LoggerFactory.getLogger(PersonController.class);
-
     private final PersonService personService;
 
     private final DepartmentService departmentService;

@@ -17,5 +17,5 @@
         <appender-ref ref="FILE" />
     </root>
 
-    <logger name="nl.humaninference" level="trace" />
+    <logger name="nl.humaninference" level="debug" />
 </configuration>
