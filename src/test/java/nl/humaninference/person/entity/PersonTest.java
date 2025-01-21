@@ -6,6 +6,7 @@ import org.junit.Test;
 
 public class PersonTest {
 
+	// In this version of jacoco we still need to call some of the getters and getters to get 100% test coverage for this class
 	@Test
 	public void test_getters_setters() {
 		Person person = new Person();

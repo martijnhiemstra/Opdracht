@@ -69,6 +69,8 @@ public class PersonController {
     	if (person.getName() == null || person.getName().isEmpty()) {
     		throw new ValidationException("Name may not be empty");
     	}
+    	
+    	// We can add more validation if we want. For this assignment I'll only do the name validation since the other validations work in the same way
 
         Person createdPerson = personService.create(person);
 
