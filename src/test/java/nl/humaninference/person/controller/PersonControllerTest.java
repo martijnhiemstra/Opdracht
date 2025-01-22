@@ -26,6 +26,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import nl.humaninference.person.dto.PersonDto;
+import nl.humaninference.person.dto.SavePersonDto;
 import nl.humaninference.person.entity.Department;
 import nl.humaninference.person.entity.Person;
 import nl.humaninference.person.entity.PersonStatus;
@@ -49,6 +51,8 @@ public class PersonControllerTest {
     public ExpectedException exceptionRule = ExpectedException.none();
     
     private Person person;
+    
+    private SavePersonDto savePersonDto;
 
     @Before
     public void setUp() {
@@ -59,11 +63,17 @@ public class PersonControllerTest {
         department.setName("IT");
 
         person = new Person();
-        person.setName("Jane Doe");
-        person.setSalary(5489.45);
+        person.setName("John Doe");
+        person.setSalary(123.45);
         person.setStatus(PersonStatus.ACTIVE);
         person.setStartDate(LocalDateTime.now());
         person.setDepartment(department);
+        
+        savePersonDto = new SavePersonDto();
+        savePersonDto.setName("John Doe");
+        savePersonDto.setSalary(123.45);
+        savePersonDto.setStatus(PersonStatus.ACTIVE);
+        savePersonDto.setStartDate(LocalDateTime.now());        
     }
 
     @Test
@@ -76,8 +86,8 @@ public class PersonControllerTest {
         ResponseEntity<Page<Person>> response = personController.findAll(0, 3);
 
         assertThat(response.getBody()).isNotEmpty();
-        assertThat(response.getBody().getContent().get(0).getName()).isEqualTo("Jane Doe");
-        assertThat(response.getBody().getContent().get(0).getSalary()).isEqualTo(5489.45);
+        assertThat(response.getBody().getContent().get(0).getName()).isEqualTo("John Doe");
+        assertThat(response.getBody().getContent().get(0).getSalary()).isEqualTo(123.45);
         verify(personService, times(1)).findAll(any());
     }
 
@@ -88,7 +98,7 @@ public class PersonControllerTest {
         ResponseEntity<Person> response = personController.findById(1L);
 
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getName()).isEqualTo("Jane Doe");
+        assertThat(response.getBody().getName()).isEqualTo("John Doe");
         verify(personService, times(1)).findById(1L);
     }
 
@@ -96,25 +106,25 @@ public class PersonControllerTest {
     public void test_create_with_validdata() {
         when(personService.create(any())).thenReturn(person);
 
-        ResponseEntity<Person> response = personController.create(person);
+        ResponseEntity<Person> response = personController.create(savePersonDto);
 
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getName()).isEqualTo("Jane Doe");
-        assertThat(response.getBody().getSalary()).isEqualTo(5489.45);
+        assertThat(response.getBody().getName()).isEqualTo("John Doe");
+        assertThat(response.getBody().getSalary()).isEqualTo(123.45);
 
-        verify(personService, times(1)).create(person);
+        verify(personService, times(1)).create(any());
     }
 
     @Test
     public void test_create_with_invaliddata() {
     	// Create a person with a null name
-        Person person = new Person();
+        SavePersonDto savePersonDto = new SavePersonDto();
 
     	// Assume a validation exception is being thrown when calling create
         exceptionRule.expect(ValidationException.class);
         exceptionRule.expectMessage("Name may not be empty");
 
-        ResponseEntity<Person> response = personController.create(person);
+        ResponseEntity<Person> response = personController.create(savePersonDto);
 
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -125,13 +135,13 @@ public class PersonControllerTest {
 
     @Test
     public void test_update_with_validdata() {
+        when(personService.findById(1L)).thenReturn(Optional.of(person));
         when(personService.update(1L, person)).thenReturn(person);
 
-        ResponseEntity<Person> response = personController.update(1L, person);
+        ResponseEntity<Person> response = personController.update(1L, savePersonDto);
 
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getName()).isEqualTo("Jane Doe");
-        assertThat(response.getBody().getSalary()).isEqualTo(5489.45);
+        assertThat(response.getBody().getName()).isEqualTo("John Doe");
+        assertThat(response.getBody().getSalary()).isEqualTo(123.45);
 
         verify(personService, times(1)).update(1L, person);
     }
@@ -140,16 +150,18 @@ public class PersonControllerTest {
     public void test_update_with_invaliddata() {
     	// Important. We are testing the components directly. This means the global exception handler isn't invoked.
     	// So the response status should be 200 (OK)
-    	Person updatePerson = new Person();
+    	SavePersonDto savePersonDto = new SavePersonDto();
 
-        when(personService.update(1L, updatePerson)).thenReturn(updatePerson);
+    	// Assume a validation exception is being thrown when calling create
+        exceptionRule.expect(ValidationException.class);
+        exceptionRule.expectMessage("Name may not be empty");
 
-        ResponseEntity<Person> response = personController.update(1L, updatePerson);
+        ResponseEntity<Person> response = personController.update(1L, savePersonDto);
 
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        verify(personService, times(1)).update(1L, updatePerson);
+        verify(personService, times(0)).update(1L, any());
     }
 
     @Test
@@ -166,7 +178,7 @@ public class PersonControllerTest {
     public void test_search() {
         Page<Person> mockPage = new PageImpl<>(Arrays.asList(person));
         Pageable pageable = PageRequest.of(0, 10);
-        
+
         LocalDateTime localDateTime = LocalDateTime.parse("2023-01-01T00:00:00");
 
         // Mock dependencies
@@ -176,7 +188,7 @@ public class PersonControllerTest {
                 .thenReturn(mockPage);
 
         // Call the method directly
-        Page<Person> result = personController.search(
+        Page<PersonDto> result = personController.search(
                 "Jane Doe",                  // name
                 4000.0,                  // minSalary
                 6000.0,                  // maxSalary
@@ -188,9 +200,9 @@ public class PersonControllerTest {
         );
 
         // Assertions
-        assertThat(result.getTotalElements()).isEqualTo(1L);
-        assertThat(result.getContent().get(0).getName()).isEqualTo("Jane Doe");
-        assertThat(result.getContent().get(0).getSalary()).isEqualTo(5489.45);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getName()).isEqualTo("John Doe");
+        assertThat(result.getContent().get(0).getSalary()).isEqualTo(123.45);
         assertThat(result.getContent().get(0).getStatus()).isEqualTo(PersonStatus.ACTIVE);
         
         verify(personService, times(1)).searchPersons(any(), any(), any(), any(), any(), any(), any());

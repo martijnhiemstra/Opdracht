@@ -17,10 +17,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import nl.humaninference.person.dto.PersonDto;
+import nl.humaninference.person.dto.SavePersonDto;
 import nl.humaninference.person.entity.Department;
 import nl.humaninference.person.entity.Person;
 import nl.humaninference.person.entity.PersonStatus;
 import nl.humaninference.person.exception.ValidationException;
+import nl.humaninference.person.mapper.SavePersonDto2PersonMapper;
 import nl.humaninference.person.service.DepartmentService;
 import nl.humaninference.person.service.PersonService;
 
@@ -32,15 +35,18 @@ public class PersonController {
 
     private final DepartmentService departmentService;
 
+    private final SavePersonDto2PersonMapper mapper;
+    
     public PersonController(PersonService personService, DepartmentService departmentService) {
 		this.personService = personService;
 		this.departmentService = departmentService;
+		this.mapper = new SavePersonDto2PersonMapper();
 	}
 
 	// This endpoint allows us to search for persons. In this situation we use request parameters.
     // We could also use a dto if we want to. 
     @GetMapping("/search")
-    public Page<Person> search(
+    public Page<PersonDto> search(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Double minSalary,
             @RequestParam(required = false) Double maxSalary,
@@ -57,22 +63,25 @@ public class PersonController {
             department = departmentService.findById(departmentId).orElse(null);
         }
 
-        return personService.searchPersons(name, department, minSalary, maxSalary, status, startDate, pageable);
+        return personService.searchPersons(name, department, minSalary, maxSalary, status, startDate, pageable)
+        		.map(mapper::convertToDto);
     }
 
     // This endpoint allows people to create a new person.
     @PostMapping
-    public ResponseEntity<Person> create(@RequestBody Person person) {
+    public ResponseEntity<Person> create(@RequestBody SavePersonDto dto) {
     	// We have a choice to do the validation here in the controller or in the service layer.
     	// For this assignment I have chosen to do both just to show that its possible to do both. 
     	// Putting the validation in the controller would look like this:
-    	if (person.getName() == null || person.getName().isEmpty()) {
+    	if (dto.getName() == null || dto.getName().isEmpty()) {
     		throw new ValidationException("Name may not be empty");
     	}
     	
     	// We can add more validation if we want. For this assignment I'll only do the name validation since the other validations work in the same way
-
-        Person createdPerson = personService.create(person);
+    	
+    	// After the validation we can convert the save person dto into a person entity. 
+    	Person newPerson = mapper.convertToEntity(dto, new Person());
+        Person createdPerson = personService.create(newPerson);
 
         return ResponseEntity.ok(createdPerson);
     }
@@ -98,10 +107,21 @@ public class PersonController {
 
     // Allow updating an existing person
     @PutMapping("/{id}")
-    public ResponseEntity<Person> update(@PathVariable Long id, @RequestBody Person updatedPerson) {
-        Person person = personService.update(id, updatedPerson);
+    public ResponseEntity<Person> update(@PathVariable Long id, @RequestBody SavePersonDto dto) {
+    	// Again we have a choice to do the validation here in the controller or in the service layer.
+    	if (dto.getName() == null || dto.getName().isEmpty()) {
+    		throw new ValidationException("Name may not be empty");
+    	}
+    	
+    	return personService.findById(id).map(existingPerson -> {
+    		// Covert the existing person from the database into a updated person using the dto
+        	Person toBeUpdatedPerson = mapper.convertToEntity(dto, existingPerson);
 
-        return ResponseEntity.ok(person);
+        	// Update the person in the database
+        	Person person = personService.update(id, toBeUpdatedPerson);
+
+            return ResponseEntity.ok(person);
+        }).orElseThrow(() -> new ValidationException("Person not found with ID: " + id));
     }
 
     // Allow the deletion of a specific person
